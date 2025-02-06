@@ -1,79 +1,81 @@
 import pandas as pd
-import joblib
-from xgboost import XGBRegressor
+import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
-from nba_api.stats.static import teams
+import joblib
 from feature_engineering import compute_team_features
 
-def generate_training_data(output_file="nba_training_data.csv", num_games=10):
-    """Fetch past games and generate a dataset."""
-    from nba_api.stats.static import teams
-    from feature_engineering import compute_team_features
-    
-    all_teams = teams.get_teams()
+NBA_TEAMS = {
+    1610612737: "Atlanta Hawks",
+    1610612738: "Boston Celtics",
+    1610612739: "Cleveland Cavaliers",
+    # Add all NBA team IDs here...
+}
+
+def create_dataset():
+    """Generate training dataset."""
     data = []
+    
+    for team_id in NBA_TEAMS.keys():
+        avg_scored, avg_allowed, pace = compute_team_features(team_id)
+        if avg_scored is not None and avg_allowed is not None and pace is not None:
+            data.append([team_id, avg_scored, avg_allowed, pace])
 
-    print("\n🔍 Fetching NBA team data...")
-    for team in all_teams:
-        team_id = team['id']
-        print(f"📊 Processing {team['full_name']} (ID: {team_id})...")
+    if not data:
+        print("❌ No valid data collected. Check `compute_team_features()`")
+        return None
 
-        try:
-            team_features = compute_team_features(team_id, num_games)
-            
-            if None in team_features or team_features == (None, None, None):  
-                print(f"⚠️ Skipping {team['full_name']} - Missing stats")
-                continue
+    df = pd.DataFrame(data, columns=['Team_ID', 'Avg_Scored', 'Avg_Allowed', 'Pace'])
+    df.to_csv("nba_training_data.csv", index=False)
+    print("✅ Dataset saved as `nba_training_data.csv`")
+    return df
 
-            team_data = {
-                "Team_Avg_Points": team_features[0],
-                "Opponent_Avg_Defense": team_features[1],
-                "Home_Away": 1,  # Placeholder
-                "Total_Points": team_features[0] + team_features[1]  # Approximation
-            }
-            
-            data.append(team_data)
-            print(f"✅ Added: {team_data}")
+def train_model():
+    """Train a model on NBA team stats to predict total points in a game."""
+    data_path = "nba_training_data.csv"
 
-        except Exception as e:
-            print(f"❌ Error processing {team['full_name']}: {e}")
-            continue  # Skip teams with errors
-
-    if data:
-        df = pd.DataFrame(data)
-        df.to_csv(output_file, index=False)
-        print(f"\n✅ Training data saved to {output_file}")
-    else:
-        print("\n❌ No data collected. Check `compute_team_features()` for issues.")
-
-
-def train_model(data_path="nba_training_data.csv"):
-    """Train the NBA total points prediction model."""
     try:
         df = pd.read_csv(data_path)
     except FileNotFoundError:
-        print(f"{data_path} not found. Generating dataset...")
-        generate_training_data()
-        df = pd.read_csv(data_path)
+        print("❌ `nba_training_data.csv` not found. Generating dataset...")
+        df = create_dataset()
+        if df is None:
+            return
 
-    if df.empty:
-        raise ValueError("Generated training dataset is empty. Check `generate_training_data()` for issues.")
-
-    X = df.drop(columns=['Total_Points'])
-    y = df['Total_Points']
+    X = df[['Avg_Scored', 'Avg_Allowed', 'Pace']]
+    y = df['Avg_Scored'] + df['Avg_Allowed']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=5, random_state=42)
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
-    y_pred = model.predict(X_test)
-    mae = mean_absolute_error(y_test, y_pred)
-    print(f"✅ Model Trained. MAE: {mae}")
+    predictions = model.predict(X_test)
+    mae = mean_absolute_error(y_test, predictions)
+
+    print(f"📈 Model trained! MAE: {mae:.2f}")
 
     joblib.dump(model, "nba_model.pkl")
-    print("Model saved as nba_model.pkl")
+    print("✅ Model saved as `nba_model.pkl`")
 
-if __name__ == "__main__":
-    train_model()
+def predict_game(team1_id, team2_id):
+    """Predict the total points scored in a game between two teams."""
+    model = joblib.load("nba_model.pkl")
+
+    team1_features = compute_team_features(team1_id)
+    team2_features = compute_team_features(team2_id)
+
+    if None in team1_features or None in team2_features:
+        print("❌ Missing data for one or both teams.")
+        return None
+
+    avg_scored = (team1_features[0] + team2_features[0]) / 2
+    avg_allowed = (team1_features[1] + team2_features[1]) / 2
+    pace = (team1_features[2] + team2_features[2]) / 2
+
+    X_input = np.array([[avg_scored, avg_allowed, pace]])
+    prediction = model.predict(X_input)
+
+    print(f"🔮 Predicted total points: {prediction[0]:.2f}")
+    return prediction[0]

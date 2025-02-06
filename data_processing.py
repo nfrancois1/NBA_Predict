@@ -1,27 +1,43 @@
-from nba_api.stats.endpoints import teamgamelog
+import requests
 import pandas as pd
+import time
 
-def get_team_past_games(team_id, num_games=5):
-    """Fetch past games for a given NBA team."""
+NBA_STATS_API_URL = "https://stats.nba.com/stats/teamgamelogs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept-Language": "en-US,en;q=0.9"
+}
+
+def fetch_team_game_logs(team_id, season="2023-24"):
+    """Fetch past game logs for a given NBA team."""
+    params = {
+        "Season": season,
+        "SeasonType": "Regular Season",
+        "TeamID": team_id
+    }
+
     try:
-        gamelog = teamgamelog.TeamGameLog(team_id=team_id)
-        df = gamelog.get_data_frames()[0]
+        response = requests.get(NBA_STATS_API_URL, headers=HEADERS, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Convert response data into DataFrame
+        columns = data["resultSets"][0]["headers"]
+        rows = data["resultSets"][0]["rowSet"]
+        df = pd.DataFrame(rows, columns=columns)
 
-        if df.empty:
-            print(f"⚠️ No game data found for team ID {team_id}")
-            return pd.DataFrame()
-
-        # Print available columns for debugging
-        print(f"📊 Available columns in game log for team ID {team_id}: {df.columns.tolist()}")
-
-        # Convert date to datetime format
+        # Ensure proper datetime format
         df['GAME_DATE'] = pd.to_datetime(df['GAME_DATE'], errors='coerce')
-
-        # Sort by date and select last 'num_games' games
-        df = df.sort_values(by='GAME_DATE', ascending=False).head(num_games)
 
         return df
 
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         print(f"❌ Error fetching games for team ID {team_id}: {e}")
         return pd.DataFrame()
+
+def get_team_past_games(team_id, num_games=5):
+    """Retrieve the last `num_games` games for the given team."""
+    df = fetch_team_game_logs(team_id)
+    if df.empty:
+        return df
+    return df.sort_values(by="GAME_DATE", ascending=False).head(num_games)

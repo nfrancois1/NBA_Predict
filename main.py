@@ -1,9 +1,9 @@
-from model import train_model
-from predict import predict_today_games
+from model import train_model, predict_game
 
 if __name__ == "__main__":
-    print("Training Model...")
     train_model()
+    
+    team1 = 1610612737  # Atlanta Hawks
+    team2 = 1610612738  # Boston Celtics
 
-    print("\nFetching NBA Games and Predicting...")
-    predict_today_games()
+    predict_game(team1, team2)

@@ -1,41 +1,44 @@
 from data_processing import get_team_past_games
+import pandas as pd
 
 def compute_team_features(team_id, num_games=5):
-    """Fetch past games and compute team stats."""
+    """Compute team features including avg points scored, opponent points allowed, and pace."""
     df = get_team_past_games(team_id, num_games)
 
     if df.empty:
         print(f"⚠️ No game data found for team ID {team_id}")
         return None, None, None
 
-    # Print available columns for debugging
-    print(f"📊 Columns in dataset for team {team_id}: {df.columns.tolist()}")
-
     try:
         avg_points_scored = df['PTS'].mean()
 
-        # Automatically find the correct opponent points column
-        opponent_points_col = None
-        for col in df.columns:
-            if "OPP" in col.upper() and "PTS" in col.upper():
-                opponent_points_col = col
-                break
+        # Extract opponent points using MATCHUP column
+        df['Opponent_Team_ID'] = df['MATCHUP'].apply(lambda x: int(x.split()[-1]) if x.split()[-1].isdigit() else None)
 
-        if opponent_points_col:
-            avg_points_allowed = df[opponent_points_col].mean()
-        else:
-            print(f"❌ Opponent points column not found for team ID {team_id}")
+        opponent_dfs = []
+        for opp_id in df['Opponent_Team_ID'].dropna().unique():
+            opp_df = get_team_past_games(int(opp_id), num_games)
+            if not opp_df.empty:
+                opp_df = opp_df[['Game_ID', 'PTS']].rename(columns={'PTS': 'OPP_PTS'})
+                opponent_dfs.append(opp_df)
+
+        if not opponent_dfs:
+            print(f"❌ No opponent stats found for team ID {team_id}")
             return None, None, None
 
-        # Estimate possessions using a standard formula
+        opponent_df = pd.concat(opponent_dfs)
+        df = df.merge(opponent_df, on='Game_ID', how='left')
+
+        avg_points_allowed = df['OPP_PTS'].mean()
+
+        # Compute estimated possessions
         if all(col in df.columns for col in ['FGA', 'TO', 'FTA', 'OREB']):
             df['Possessions'] = df['FGA'] + df['TO'] + 0.44 * df['FTA'] - df['OREB']
-            avg_pace = 48 * df['Possessions'].mean() / 48
+            avg_pace = df['Possessions'].mean()
         else:
             avg_pace = None
             print(f"⚠️ Missing possession-related stats for team {team_id}")
 
-        print(f"✅ Team {team_id} - Avg Points: {avg_points_scored}, Avg Opp Def: {avg_points_allowed}, Pace: {avg_pace}")
         return avg_points_scored, avg_points_allowed, avg_pace
 
     except Exception as e:
