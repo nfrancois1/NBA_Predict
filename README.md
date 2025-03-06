@@ -1,6 +1,7 @@
 FranPlayz NBA Model: Key Components & Prediction Strategy
 
 Introduction
+
 FranPlayz Model is developed to provide accurate NBA predictions using a data-driven approach. By evaluating a variety of key components, 
 we ensure that each prediction is based on statistical trends, game dynamics, and market insights. 
 Below is a breakdown of the essential factors considered in our over/under and spread predictions and how the FranPlayz model optimizes its picks.
@@ -45,35 +46,57 @@ Line Movement: If a total drops from 230 to 225, it may indicate sharp money on 
 Public vs. Sharp: Public often lean on overs and favorites, while sharp money moves lines based on real data insights.
 
 How FranPlayz Model Works
+
 2.1 Data Collection & Weighting System
 The FranPlayz model pulls data from various sources, including:
+
 NBA Advanced Stats (pace, ORtg, DRtg, PPG, Opp PPG)
+
 Team & Player Trends (recent performance, shooting efficiency, injury impacts)
+
 Vegas Line Movement (tracking smart money movement)
+
 Historical Matchups (head-to-head performances)
+
 Each category is weighted based on importance. For instance:
+
 Pace & Offensive Efficiency (30%)
+
 Defensive Strength & Opponent PPG (25%)
+
 Injury Impact (15%)
+
 Line Movement & Market Influence (15%)
+
 Recent Trends (15%)
 
 2.2 Model Calculation Process
+
 Pace Projection – Determines expected number of possessions.
+
 Offensive & Defensive Adjustment – Measures scoring potential.
+
 Injury Modifications – Adjusts projections if key players are out.
+
 Market Influence – Monitors sharp money & line movements.
+
 Final Prediction Output – Provides an over/under or spread recommendation based on all weighted factors.
 
 2.3 How the Model Optimizes Accuracy
+
 Adjusts dynamically based on injuries and recent trends.
+
 Compares its projection to Vegas lines and identifies market inefficiencies.
+
 Cross-references multiple data sources to ensure consistency in picks.
 
 Conclusion: Why FranPlayz Model Works
+
 By incorporating a data-driven approach, considering all critical factors, and constantly updating based on new trends, the FranPlayz model consistently finds high-value predictions.
 Our method ensures we’re predicting based on analytics, not gut feeling, leading to long-term success in NBA over/under and spread predictions.
+
 Key Takeaways: Uses pace, efficiency, trends, injuries, and prediction market insights to analyze games. 
 Compares real-world data vs. Vegas odds to find profitable opportunities. 
 Dynamic adjustments make the model responsive to injuries and recent form.
+
 By following these principles, the FranPlayz model continues to dominate the NBA!
